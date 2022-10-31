@@ -20,13 +20,14 @@ namespace jnp1 {
 extern "C" {
 #endif
 
-typedef unsigned long table_id_t;
+typedef unsigned long table_id_t;  // Id jakiejś tablicy haszującej.
 
-typedef uint64_t element_t;
-typedef element_t const *const_sequence_t;
+typedef uint64_t element_t;  // Liczba całkowita, element ciągu.
+typedef element_t const *const_sequence_t;  // Ciąg liczb całkowitych.
 
-typedef size_t hash_value_t;
-typedef hash_value_t (*hash_function_t)(const_sequence_t, size_t);
+typedef size_t hash_value_t;  // Wartość zwracana przez funkcję haszującą.
+typedef hash_value_t (*hash_function_t)(const_sequence_t,
+                                        size_t);  // Funkcja haszująca ciągi.
 
 /// Tworzy tablicę haszującą i zwraca jej identyfikator
 table_id_t hash_create(hash_function_t f);
@@ -64,8 +65,8 @@ void hash_clear(table_id_t id);
 bool hash_test(table_id_t id, const_sequence_t seq, size_t size);
 
 #ifdef __cplusplus
-}
-}
+}  // extern
+}  // namespace
 #endif
 
 #endif
