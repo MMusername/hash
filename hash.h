@@ -4,6 +4,11 @@
 #ifdef __cplusplus
 #include <cstddef>
 #include <cstdint>
+
+// This must be included here, so that the static stream objects are created
+// before any function can be called.
+#include <iostream>
+
 #else
 #include <stdbool.h>
 #include <stddef.h>
