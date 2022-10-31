@@ -1,12 +1,20 @@
 #include "hash.h"
 
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
 using jnp1::const_sequence_t;
 using jnp1::element_t;
 using jnp1::hash_function_t;
 using jnp1::table_id_t;
+
+#ifdef NDEBUG
+const bool debug = false;
+#else
+const bool debug = true;
+#endif
 
 namespace {
 struct sequence {
@@ -30,86 +38,95 @@ namespace {
 
 using hash_set_t = ::std::unordered_set<sequence>;
 using function_set_pair_t = ::std::pair<hash_function_t, hash_set_t>;
-using main_map_t = ::std::unordered_map<table_id_t, function_set_pair_t>;
+using tables_t = ::std::unordered_map<table_id_t, function_set_pair_t>;
 
-main_map_t& main_map() {
-  static main_map_t x;
-  return x;
+tables_t& tables() {
+  // To prevent order initalization fiasco, the object is created on first use.
+  static tables_t* x = new tables_t();
+  return *x;
 }
-unsigned long next_id = 0;
 
-bool id_exist(unsigned long id) { return main_map().find(id) != main_map().end(); }
+table_id_t next_id = 0;
 
+bool table_exists(table_id_t id) { return tables().count(id); }
 
-bool contains_seq(unsigned long id, const_sequence_t seq, size_t size) {
-  function_set_pair_t pair = main_map().at(id);
+bool table_contains_sequence(table_id_t id, const_sequence_t seq, size_t size) {
+  function_set_pair_t pair = tables().at(id);
   return pair.second.find({{seq, seq + size}, pair.first}) != pair.second.end();
 }
 
-bool first_test(unsigned long id, const_sequence_t seq, size_t size) {
-  if (!id_exist(id) || seq == NULL || size == 0) {
-    return false;
-  }
-
-  return true;
+bool table_and_sequence_are_valid(table_id_t id, const_sequence_t seq,
+                                  size_t size) {
+  return table_exists(id) && seq != NULL && size > 0;
 }
 }  // namespace
 
-extern "C" {
+namespace jnp1 {
 
 table_id_t hash_create(hash_function_t hash_function) {
+  if (debug) {
+    std::cerr << "hash_create(" << hash_function << ")\n";
+  }
+
   table_id_t id = next_id++;
-  main_map()[id] = {hash_function, {}};
+  tables()[id] = {hash_function, {}};
+
+  if (debug) {
+    std::cerr << "hash_create: hash table #" << id << " created\n";
+  }
+
   return id;
 }
 
 void hash_delete(table_id_t id) {
-  if (id_exist(id)) {
-    main_map().erase(id);
+  if (table_exists(id)) {
+    tables().erase(id);
   }
 }
 
 size_t hash_size(table_id_t id) {
-  if (!id_exist(id)) {
+  if (!table_exists(id)) {
     return 0;
   }
 
-  return main_map().at(id).second.size();
+  return tables()[id].second.size();
 }
 
 bool hash_insert(table_id_t id, const_sequence_t seq, size_t size) {
-  if (!first_test(id, seq, size) || contains_seq(id, seq, size)) {
+  if (!table_and_sequence_are_valid(id, seq, size) ||
+      table_contains_sequence(id, seq, size)) {
     return false;
   }
 
-  function_set_pair_t pair = main_map().at(id);
-  main_map().at(id).second.insert({{seq, seq + size}, pair.first});
+  function_set_pair_t pair = tables().at(id);
+  tables()[id].second.insert({{seq, seq + size}, pair.first});
 
   return true;
 }
 
 bool hash_remove(table_id_t id, const_sequence_t seq, size_t size) {
-  if (!first_test(id, seq, size) || !contains_seq(id, seq, size)) {
+  if (!table_and_sequence_are_valid(id, seq, size) ||
+      !table_contains_sequence(id, seq, size)) {
     return false;
   }
 
-  function_set_pair_t pair = main_map().at(id);
-  main_map().at(id).second.erase({{seq, seq + size}, pair.first});
+  function_set_pair_t pair = tables().at(id);
+  tables().at(id).second.erase({{seq, seq + size}, pair.first});
 
   return true;
 }
 
 void hash_clear(table_id_t id) {
-  if (id_exist(id)) {
-    main_map().at(id).second.clear();
+  if (table_exists(id)) {
+    tables().at(id).second.clear();
   }
 }
 
 bool hash_test(table_id_t id, const_sequence_t seq, size_t size) {
-  if (!first_test(id, seq, size)) {
+  if (!table_and_sequence_are_valid(id, seq, size)) {
     return false;
   }
 
-  return contains_seq(id, seq, size);
+  return table_contains_sequence(id, seq, size);
 }
-}
+}  // namespace jnp1
