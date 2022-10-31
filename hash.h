@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <functional>
 #include <unordered_set>
-#include <queue>
 #include <vector>
 
 using hash_function_t = auto (*)(uint64_t const * v, size_t n) -> uint64_t;
@@ -29,7 +28,6 @@ namespace std {
 using hash_set_t = std::unordered_set<seq>;
 using function_set_pair_t = std::pair<hash_function_t, hash_set_t>;
 using main_map_t = std::unordered_map<unsigned long, function_set_pair_t>;
-using queue_t = std::queue<unsigned long>;
 
 unsigned long hash_create(hash_function_t hash_function);
 
