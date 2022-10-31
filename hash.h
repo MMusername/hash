@@ -1,45 +1,66 @@
+#ifndef HASH_H
+#define HASH_H
+
+#ifdef __cplusplus
 #include <cstddef>
 #include <cstdint>
-#include <functional>
-#include <unordered_set>
-#include <vector>
+#else
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#endif
 
-using hash_function_t = auto (*)(uint64_t const * v, size_t n) -> uint64_t;
-using vector_t = std::vector<uint64_t>;
+#ifdef __cplusplus
+namespace jnp1 {
+extern "C" {
+#endif
 
-struct seq {
-    vector_t v;
-    hash_function_t hash_function;
+typedef unsigned long table_id_t;
 
-    bool operator==(const seq &other) const {
-        return v == other.v;
-    }
-};
-using seq_t = struct seq;
+typedef uint64_t element_t;
+typedef element_t const *const_sequence_t;
 
-namespace std {
-    template <> struct hash<seq> {
-        size_t operator()(const seq& s) const {
-            return s.hash_function(s.v.data(), s.v.size());
-        }
-    };
+typedef size_t hash_value_t;
+typedef hash_value_t (*hash_function_t)(const_sequence_t, size_t);
+
+/// Tworzy tablicę haszującą i zwraca jej identyfikator
+table_id_t hash_create(hash_function_t f);
+
+/// Usuwa tablicę haszującą o identyfikatorze id, o ile ona istnieje. W
+/// przeciwnym przypadku nic nie robi.
+void hash_delete(table_id_t id);
+
+/// Daje liczbę ciągów przechowywanych w tablicy haszującej o
+/// identyfikatorze id lub 0, jeśli taka tablica nie istnieje.
+size_t hash_size(table_id_t id);
+
+/// Wstawia do tablicy haszującej o identyfikatorze id ciąg liczb całkowitych
+/// seq o długości size. Wynikiem jest informacja, czy operacja się powiodła.
+/// Operacja się nie powiedzie, jeśli nie ma takiej tablicy haszującej, jeśli
+/// tablica haszująca zawiera już taki ciąg, jeśli parametr seq ma wartość NULL
+/// lub parametr size ma wartość 0.
+bool hash_insert(table_id_t id, const_sequence_t seq, size_t size);
+
+/// Usuwa z tablicy haszującej o identyfikatorze id ciąg liczb całkowitych
+/// seq o długości size. Wynikiem jest informacja, czy operacja się
+/// powiodła. Operacja się nie powiedzie, jeśli nie ma takiej tablicy
+/// haszującej, jeśli tablica haszująca nie zawiera takiego ciągu,
+/// jeśli parametr seq ma wartość NULL lub parametr size ma wartość 0.
+bool hash_remove(table_id_t id, const_sequence_t seq, size_t size);
+
+/// Jeśli tablica haszująca o identyfikatorze id istnieje i nie jest pusta,
+/// to usuwa z niej wszystkie elementy. W przeciwnym przypadku nic nie robi.
+void hash_clear(table_id_t id);
+
+/// Daje wynik true, jeśli istnieje tablica haszująca o identyfikatorze id
+/// i zawiera ona ciąg liczb całkowitych seq o długości size. Daje wynik
+/// false w przeciwnym przypadku oraz gdy parametr seq ma wartość NULL lub
+/// parametr size ma wartość 0.
+bool hash_test(table_id_t id, const_sequence_t seq, size_t size);
+
+#ifdef __cplusplus
 }
+}
+#endif
 
-using hash_set_t = std::unordered_set<seq>;
-using function_set_pair_t = std::pair<hash_function_t, hash_set_t>;
-using main_map_t = std::unordered_map<unsigned long, function_set_pair_t>;
-
-unsigned long hash_create(hash_function_t hash_function);
-
-void hash_delete(unsigned long id);
-
-size_t hash_size(unsigned long id);
-
-bool hash_insert(unsigned long id, uint64_t const * seq, size_t size);
-
-bool hash_remove(unsigned long id, uint64_t const * seq, size_t size);
-
-void hash_clear(unsigned long id);
-
-bool hash_test(unsigned long id, uint64_t const * seq, size_t size);
-
+#endif
