@@ -27,18 +27,9 @@ struct hash<function_vector_pair_t> {
 };
 }  // namespace std
 
-// Struktura hashująca
-/*struct Hash {
-  //hash_function_t hash_function;
-  size_t operator()(const vector_t& v) const {
-    //return hash_function(v.data(), v.size());
-    return v[0];
-  }
-};*/
-
 namespace {
 
-using hash_set_t = ::std::unordered_set<function_vector_pair_t>;
+using hash_set_t = ::std::unordered_set<sequence>;
 using function_set_pair_t = ::std::pair<hash_function_t, hash_set_t>;
 using tables_t = ::std::unordered_map<table_id_t, function_set_pair_t>;
 
@@ -54,6 +45,7 @@ bool table_exists(table_id_t id) { return tables().count(id); }
 
 bool table_contains_sequence(table_id_t id, const_sequence_t seq, size_t size) {
   function_set_pair_t pair = tables().at(id);
+
   return pair.second.find({pair.first, {seq, seq + size}}) != pair.second.end();
 }
 
@@ -64,7 +56,6 @@ bool table_and_sequence_are_valid(table_id_t id, const_sequence_t seq,
 }  // namespace
 
 namespace jnp1 {
-
 table_id_t hash_create(hash_function_t hash_function) {
   if (debug) {
     std::cerr << "hash_create(" << hash_function << ")\n";
@@ -72,12 +63,35 @@ table_id_t hash_create(hash_function_t hash_function) {
 
   table_id_t id = next_id++;
   tables()[id] = {hash_function, {}};
-
   if (debug) {
     std::cerr << "hash_create: hash table #" << id << " created\n";
   }
 
   return id;
+}
+
+void hash_delete(table_id_t id) {
+  if (table_exists(id)) {
+    tables().erase(id);
+  }
+}
+
+size_t hash_size(table_id_t id) {
+  if (!table_exists(id)) {
+    return 0;
+  }
+
+  return tables()[id].second.size();
+}
+
+bool hash_insert(table_id_t id, const_sequence_t seq, size_t size) {
+  if (!table_and_sequence_are_valid(id, seq, size) ||
+      table_contains_sequence(id, seq, size)) {
+    return false;
+  }
+
+  function_set_pair_t pair = tables().at(id);
+  tables()[id].second.insert({pair.first, {seq, seq + size}});
 }
 
 void hash_delete(table_id_t id) {
@@ -132,3 +146,4 @@ bool hash_test(table_id_t id, const_sequence_t seq, size_t size) {
   return table_contains_sequence(id, seq, size);
 }
 }  // namespace jnp1
+

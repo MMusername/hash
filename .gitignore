@@ -1,0 +1,10 @@
+
+*
+
+# Ignoruj wszystko oprócz plików .h, .c, .cc
+
+!.gitignore
+!*.h
+!*.c
+!*.cc
+!make*
