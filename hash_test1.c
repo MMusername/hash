@@ -3,20 +3,21 @@
 #endif
 
 #include <assert.h>
-
 #include "hash.h"
 
 #define SIZE_SEQ(seq) (sizeof seq / sizeof seq[0])
 
-static uint64_t hash_function_1(uint64_t const* v, size_t n) {
+static uint64_t hash_function_1(uint64_t const * v, size_t n) {
   uint64_t hash = 0;
-  for (size_t k = 0; k < n; ++k) hash ^= v[k];
+  for (size_t k = 0; k < n; ++k)
+    hash ^= v[k];
   return hash;
 }
 
-static uint64_t hash_function_2(uint64_t const* v, size_t n) {
+static uint64_t hash_function_2(uint64_t const * v, size_t n) {
   uint64_t hash = 0;
-  for (size_t k = 0; k < n; ++k) hash += v[k];
+  for (size_t k = 0; k < n; ++k)
+    hash += v[k];
   return hash;
 }
 
