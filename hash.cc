@@ -1,5 +1,6 @@
 #include "hash.h"
 
+#include <cassert>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -43,7 +44,9 @@ tables_t &tables() {
 
 table_id_t next_id = 0;
 
-void print_table_id(table_id_t id) { std::cerr << "hash table #" << id; }
+string table_id_str(table_id_t id) {
+  return "hash table #" + std::to_string(id);
+}
 
 bool table_contains_sequence(table_id_t id, const_sequence_t seq, size_t size) {
   function_set_pair_t pair = tables().at(id);
@@ -51,24 +54,25 @@ bool table_contains_sequence(table_id_t id, const_sequence_t seq, size_t size) {
   return pair.second.find({seq, seq + size}) != pair.second.end();
 }
 
-bool table_exists(table_id_t id, string function) {
+bool check_if_table_exists(table_id_t id, string function) {
   bool result = tables().count(id);
+
   if (!result && debug) {
     if (!function.empty()) {
-      std::cerr << function << ": ";
-      print_table_id(id);
+      std::cerr << function << ": " << table_id_str(id);
     }
     std::cerr << " does not exist\n";
   }
+
   return result;
 }
 
-bool table_and_sequence_are_valid(table_id_t id, const_sequence_t seq,
-                                  size_t size, string function) {
+bool check_if_sequence_is_valid(table_id_t id, const_sequence_t seq,
+                                size_t size, string function) {
   bool result = true;
-  if (!table_exists(id, function)) {
-    result = false;
-  }
+  // if (!check_if_table_exists(id, function)) {
+  //   result = false;
+  // }
   if (seq == NULL) {
     result = false;
     if (debug) {
@@ -87,16 +91,16 @@ bool table_and_sequence_are_valid(table_id_t id, const_sequence_t seq,
 void print_sequence(const_sequence_t seq, size_t size) {
   if (seq == NULL) {
     std::cerr << "NULL";
-  } else {
-    std::cerr << "\"";
-    if (size != 0) {
-      for (size_t i = 0; i < size - 1; i++) {
-        std::cerr << seq[i] << " ";
-      }
-      std::cerr << seq[size - 1];
-    }
-    std::cerr << "\"";
+    return;
   }
+  std::cerr << '"';
+  for (size_t i = 0; i < size; i++) {
+    if (i > 0) {
+      std::cerr << " ";
+    }
+    std::cerr << seq[i];
+  }
+  std::cerr << '"';
 }
 
 void print_id_seq_size(table_id_t id, const_sequence_t seq, size_t size) {
@@ -105,10 +109,12 @@ void print_id_seq_size(table_id_t id, const_sequence_t seq, size_t size) {
   std::cerr << ", " << size << ")\n";
 }
 
-} // namespace
+}  // namespace
 
 namespace jnp1 {
 table_id_t hash_create(hash_function_t hash_function) {
+  assert(hash_function != NULL);
+
   if (debug) {
     std::cerr << "hash_create(" << hash_function << ")\n";
   }
@@ -116,9 +122,7 @@ table_id_t hash_create(hash_function_t hash_function) {
   table_id_t id = next_id++;
   tables()[id] = {hash_function, hash_set_t(0, {hash_function})};
   if (debug) {
-    std::cerr << "hash_create: ";
-    print_table_id(id);
-    std::cerr << " created\n";
+    std::cerr << "hash_create: " << table_id_str(id) << " created\n";
   }
 
   return id;
@@ -127,31 +131,33 @@ table_id_t hash_create(hash_function_t hash_function) {
 void hash_delete(table_id_t id) {
   if (debug) {
     std::cerr << "hash_delete(" << id << ")\n";
-    std::cerr << "hash_delete: ";
-    print_table_id(id);
+    std::cerr << "hash_delete: " << table_id_str(id);
   }
 
-  if (table_exists(id, "")) {
-    if (debug) {
-      std::cerr << " deleted\n";
-    }
-    tables().erase(id);
+  if (!check_if_table_exists(id, "")) {
+    return;
   }
+
+  if (debug) {
+    std::cerr << " deleted\n";
+  }
+  tables().erase(id);
 }
 
 size_t hash_size(table_id_t id) {
   if (debug) {
-    std::cerr << "hash_size(" << id << ")\n";
-    std::cerr << "hash_size: ";
-    print_table_id(id);
+    std::cerr << __func__ << "(" << id << ")\n";
   }
 
-  size_t size = 0;
-  if (table_exists(id, "")) {
-    size = tables()[id].second.size();
-    if (debug) {
-      std::cerr << " contains " << size << " element(s)\n";
-    }
+  if (!check_if_table_exists(id, __func__)) {
+    return 0;
+  }
+
+  size_t size = tables()[id].second.size();
+
+  if (debug) {
+    std::cerr << __func__ << ": " << table_id_str(id) << " contains " << size
+              << " element(s)\n";
   }
 
   return size;
@@ -163,13 +169,15 @@ bool hash_insert(table_id_t id, const_sequence_t seq, size_t size) {
     print_id_seq_size(id, seq, size);
   }
 
-  if (!table_and_sequence_are_valid(id, seq, size, "hash_insert")) {
+  if (!check_if_sequence_is_valid(id, seq, size, __func__)) {
     return false;
   }
+  if (!check_if_table_exists(id, __func__)) {
+    return false;
+  }
+
   if (debug) {
-    std::cerr << "hash_insert: ";
-    print_table_id(id);
-    std::cerr << ", sequence ";
+    std::cerr << "hash_insert: " << table_id_str(id) << ", sequence ";
     print_sequence(seq, size);
   }
   if (table_contains_sequence(id, seq, size)) {
@@ -190,16 +198,19 @@ bool hash_insert(table_id_t id, const_sequence_t seq, size_t size) {
 
 bool hash_remove(table_id_t id, const_sequence_t seq, size_t size) {
   if (debug) {
-    std::cerr << "hash_remove";
+    std::cerr << __func__;
     print_id_seq_size(id, seq, size);
   }
-  if (!table_and_sequence_are_valid(id, seq, size, "hash_remove")) {
+
+  if (!check_if_sequence_is_valid(id, seq, size, __func__)) {
     return false;
   }
+  if (!check_if_table_exists(id, __func__)) {
+    return false;
+  }
+
   if (debug) {
-    std::cerr << "hash_remove: ";
-    print_table_id(id);
-    std::cerr << ", sequence ";
+    std::cerr << __func__ << ": " << table_id_str(id) << ", sequence ";
     print_sequence(seq, size);
   }
   if (!table_contains_sequence(id, seq, size)) {
@@ -220,35 +231,42 @@ bool hash_remove(table_id_t id, const_sequence_t seq, size_t size) {
 
 void hash_clear(table_id_t id) {
   if (debug) {
-    std::cerr << "hash_clear(" << id << ")\n";
-    std::cerr << "hash_clear: ";
-    print_table_id(id);
+    std::cerr << __func__ << "(" << id << ")\n"
+              << __func__ << ": " << table_id_str(id);
   }
 
-  if (table_exists(id, "")) {
-    if (!tables().at(id).second.empty()) {
-      tables().at(id).second.clear();
+  if (check_if_table_exists(id, "")) {
+    if (tables().at(id).second.empty()) {
       if (debug) {
-        std::cerr << "cleared\n";
+        std::cerr << " was empty\n";
       }
-    } else if (debug) {
-      std::cerr << " was empty\n";
+
+      return;
+    }
+
+    tables().at(id).second.clear();
+
+    if (debug) {
+      std::cerr << " cleared\n";
     }
   }
 }
 
 bool hash_test(table_id_t id, const_sequence_t seq, size_t size) {
   if (debug) {
-    std::cerr << "hash_test";
+    std::cerr << __func__;
     print_id_seq_size(id, seq, size);
   }
-  if (!table_and_sequence_are_valid(id, seq, size, "hash_test")) {
+  if (!check_if_sequence_is_valid(id, seq, size, __func__)) {
     return false;
   }
+
+  if (!check_if_table_exists(id, __func__)) {
+    return false;
+  }
+
   if (debug) {
-    std::cerr << "hash_test: ";
-    print_table_id(id);
-    std::cerr << ", sequence ";
+    std::cerr << __func__ << ": " << table_id_str(id) << ", sequence ";
     print_sequence(seq, size);
   }
   if (table_contains_sequence(id, seq, size)) {
@@ -262,4 +280,4 @@ bool hash_test(table_id_t id, const_sequence_t seq, size_t size) {
   }
   return false;
 }
-} // namespace jnp1
+}  // namespace jnp1

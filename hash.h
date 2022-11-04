@@ -29,7 +29,7 @@ typedef size_t hash_value_t;  // Wartość zwracana przez funkcję haszującą.
 typedef hash_value_t (*hash_function_t)(const_sequence_t,
                                         size_t);  // Funkcja haszująca ciągi.
 
-/// Tworzy tablicę haszującą i zwraca jej identyfikator
+/// Tworzy tablicę haszującą i zwraca jej identyfikator.
 table_id_t hash_create(hash_function_t f);
 
 /// Usuwa tablicę haszującą o identyfikatorze id, o ile ona istnieje. W
